@@ -1,40 +1,61 @@
-require 'spec_helper'
+class UsersController < ApplicationController
+  before_action :signed_in_user, only: [:edit, :update]
+  before_action :correct_user,   only: [:edit, :update]
 
-describe "User pages" do
-
-  subject { page }
-
-  describe "profile page" do
-    let(:user) { FactoryGirl.create(:user) }
-    before { visit user_path(user) }
-
-    it { should have_content(user.name) }
-    it { should have_title(user.name) }
+  def index
   end
 
-  describe "signup page" do
+  def show
+    @user = User.find(params[:id])
+  end
 
-    before { visit signup_path }
+  def new
+    @user = User.new
+  end
 
-    let(:submit) { "Create my account" }
+  def edit
+    @user = User.find(params[:id])
+  end
 
-    describe "with invalid information" do
-      it "should not create a user" do
-        expect { click_button submit }.not_to change(User, :count)
-      end
+  def update
+    @user = User.find(params[:id])
+    if @user.update_attributes(user_params)
+      flash[:success] = "Profile updated"
+      redirect_to @user
+    else
+      render 'edit'
     end
+  end
 
-    describe "with valid information" do
-      before do
-        fill_in "Name",         with: "Example User"
-        fill_in "Email",        with: "user@example.com"
-        fill_in "Password",     with: "foobar"
-        fill_in "Confirmation", with: "foobar"
-      end
-
-      it "should create a user" do
-        expect { click_button submit }.to change(User, :count).by(1)
-      end
+  def create
+    @user = User.new(user_params)
+    if @user.save
+      sign_in @user
+      flash[:success] = "Welcome to the Sample App!"
+      redirect_to @user
+    else
+      render 'new'
     end
+  end
+
+  private
+
+  def user_params
+    params.require(:user).permit(:name, :email, :password,
+                                 :password_confirmation)
+  end
+
+  # Before filters
+
+  def signed_in_user
+    unless signed_in?
+      store_location
+      redirect_to signin_url, notice: "Please sign in."
+    end
+  end
+
+  def correct_user
+    @user = User.find(params[:id])
+    redirect_to(root_url) unless current_user?(@user)
   end
 end
